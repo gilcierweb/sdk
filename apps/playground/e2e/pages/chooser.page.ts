@@ -22,10 +22,21 @@ const TEXTAREA_BY_SOURCE: Record<ImportSource, string> = {
 };
 
 export class ChooserPage {
-  constructor(private page: Page) {}
+  constructor(
+    private page: Page,
+    private options: { shadowDom?: boolean } = {},
+  ) {}
 
+  /**
+   * Navigate to the playground. Always pins the mount mode explicitly via
+   * `?shadowDom=1` (shadow) or `?shadowDom=0` (light) so the e2e split
+   * doesn't drift with the SDK's default. The dual-mode Playwright
+   * project sets `metadata.shadowDom` and the editor fixture forwards
+   * that here.
+   */
   async goto() {
-    await this.page.goto("/");
+    const url = this.options.shadowDom ? "/?shadowDom=1" : "/?shadowDom=0";
+    await this.page.goto(url);
     await this.page.waitForSelector(SELECTORS.chooserScreen);
   }
 

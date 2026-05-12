@@ -254,11 +254,16 @@ export default {
     selectLanguage: "Select language",
     selectSdkLanguage: "Select SDK language",
     selectTheme: "Select theme",
+    toggleShadowDom: "Toggle Shadow DOM mount",
   },
   theme: {
     auto: "Auto",
     light: "Light",
     dark: "Dark",
+  },
+  shadowMode: {
+    shadow: "Shadow",
+    light: "Light",
   },
   cloud: {
     title: "Templatical Cloud",

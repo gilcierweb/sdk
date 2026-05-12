@@ -262,11 +262,16 @@ export default {
     selectLanguage: "Sprache auswählen",
     selectSdkLanguage: "SDK-Sprache auswählen",
     selectTheme: "Farbschema auswählen",
+    toggleShadowDom: "Shadow-DOM-Mount umschalten",
   },
   theme: {
     auto: "Auto",
     light: "Hell",
     dark: "Dunkel",
+  },
+  shadowMode: {
+    shadow: "Shadow",
+    light: "Light",
   },
   cloud: {
     title: "Templatical Cloud",

@@ -37,6 +37,8 @@ import {
   MessageCircle,
   CircleCheck,
   Sparkles,
+  Layers,
+  Square,
 } from "@lucide/vue";
 import {
   usePlaygroundI18n,
@@ -322,13 +324,64 @@ async function startFresh(): Promise<void> {
   await initEditor();
 }
 
+// Shadow DOM mount mode. Resolution: URL param > localStorage > SDK default
+// (`'shadow'`). The header toggle button mutates the ref + localStorage and
+// re-inits the editor. Shares the storage key with the OSS playground so the
+// preference persists across `#` and `#cloud` routes.
+const SHADOW_STORAGE_KEY = "tpl-playground-shadow-mode";
+
+function readShadowDomFlag(): boolean | undefined {
+  if (typeof window === "undefined") return undefined;
+  const v = new URLSearchParams(window.location.search).get("shadowDom");
+  if (v === "1" || v === "true") return true;
+  if (v === "0" || v === "false") return false;
+  return undefined;
+}
+
+function readStoredShadowMode(): "shadow" | "light" | null {
+  if (typeof window === "undefined") return null;
+  const v = window.localStorage.getItem(SHADOW_STORAGE_KEY);
+  return v === "shadow" || v === "light" ? v : null;
+}
+
+function resolveInitialShadowMode(): "shadow" | "light" {
+  const urlFlag = readShadowDomFlag();
+  if (urlFlag !== undefined) return urlFlag ? "shadow" : "light";
+  return readStoredShadowMode() ?? "shadow";
+}
+
+const shadowDomMode = ref<"shadow" | "light">(resolveInitialShadowMode());
+
+async function cycleShadowDom(): Promise<void> {
+  const newMode = shadowDomMode.value === "shadow" ? "light" : "shadow";
+  if (typeof window !== "undefined") {
+    window.localStorage.setItem(SHADOW_STORAGE_KEY, newMode);
+  }
+  if (editor.value) {
+    // Once `attachShadow()` runs on a host element, the shadow root is
+    // permanent — re-mounting on the same element in light mode would
+    // render into a dead shadow tree. Tear down + bump the container's
+    // `:key` so Vue recreates a fresh DOM node, then re-init.
+    const previousTemplateId = currentTemplateId.value;
+    editor.value.unmount();
+    editor.value = null;
+    shadowDomMode.value = newMode;
+    await nextTick();
+    await initEditor(previousTemplateId ?? undefined);
+  } else {
+    shadowDomMode.value = newMode;
+  }
+}
+
 async function initEditor(templateId?: string): Promise<void> {
   if (!editorContainer.value) return;
 
   initError.value = "";
+  const shadowDom = shadowDomMode.value === "shadow";
   try {
     const config: TemplaticalCloudEditorConfig = {
       container: editorContainer.value,
+      shadowDom,
       auth: buildAuthConfig(),
       uiTheme: uiTheme.value,
       locale: locale.value,
@@ -443,6 +496,23 @@ onUnmounted(() => {
         class="relative flex flex-col items-center justify-center min-h-screen px-4 sm:px-6 py-12 gap-4"
       >
         <div class="absolute top-4 right-4 flex items-center gap-1.5">
+          <button
+            class="pg-toolbar-btn"
+            :title="t.a11y.toggleShadowDom"
+            :aria-label="t.a11y.toggleShadowDom"
+            data-testid="toolbar-shadow-toggle"
+            @click="cycleShadowDom"
+          >
+            <Layers
+              v-if="shadowDomMode === 'shadow'"
+              :size="14"
+              aria-hidden="true"
+            />
+            <Square v-else :size="14" aria-hidden="true" />
+            <span class="pg-toolbar-label">{{
+              t.shadowMode[shadowDomMode]
+            }}</span>
+          </button>
           <button
             class="pg-theme-btn"
             :title="t.theme[uiTheme]"
@@ -971,6 +1041,23 @@ onUnmounted(() => {
         </div>
         <div class="flex items-center gap-2">
           <button
+            data-testid="toolbar-shadow-toggle"
+            class="pg-toolbar-btn"
+            :title="t.a11y.toggleShadowDom"
+            :aria-label="t.a11y.toggleShadowDom"
+            @click="cycleShadowDom"
+          >
+            <Layers
+              v-if="shadowDomMode === 'shadow'"
+              :size="14"
+              aria-hidden="true"
+            />
+            <Square v-else :size="14" aria-hidden="true" />
+            <span class="pg-toolbar-label">{{
+              t.shadowMode[shadowDomMode]
+            }}</span>
+          </button>
+          <button
             class="pg-theme-btn"
             :title="t.theme[uiTheme]"
             :aria-label="t.a11y.selectTheme"
@@ -1016,6 +1103,7 @@ onUnmounted(() => {
         </div>
         <div
           v-else
+          :key="shadowDomMode"
           ref="editorContainer"
           class="flex-1 min-w-0 rounded-lg border border-gray-200 shadow-sm overflow-hidden bg-white dark:bg-gray-800 dark:border-gray-700"
         />

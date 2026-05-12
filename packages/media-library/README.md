@@ -83,9 +83,16 @@ const response = await api.browseMedia({ folder_id: null });
 - **API client** — `MediaApiClient`
 - **Types** — `MediaItem`, `MediaFolder`, `MediaCategory`, `MediaConversion`, `MediaBrowseParams/Response`, `MediaUsageInfo/Response`, `MediaConfig`, etc.
 
+## Inside the editor's Shadow DOM
+
+When the editor mounts in its default shadow-DOM mode (`shadowDom: true`), the media library invocation teleports into the editor's shadow-aware popover root rather than `document.body`. The `MediaLibraryModal` accepts an optional `popoverTarget?: HTMLElement | null` prop and provides it to its three nested sub-modals (replace, edit, import-url) so the entire media UI lives inside the editor's shadow root. Standalone-SDK consumers (`init({ container })`) keep the previous body-level mount.
+
+If you embed `MediaLibraryModal` manually inside another shadow-DOM-mounted UI, pass `popoverTarget` to keep its sub-modals scoped to your shadow root.
+
 ## Documentation
 
 - [Media library guide](https://docs.templatical.com/cloud/media-library)
+- [Shadow DOM (editor)](https://docs.templatical.com/guide/shadow-dom)
 
 Full reference at **[docs.templatical.com](https://docs.templatical.com)**.
 

@@ -200,7 +200,41 @@ export class EditorPage {
     const columns = section.locator('[class*="tpl:min-h-"]');
     const target = columns.nth(colIndex);
     const countBefore = await section.locator(SELECTORS.block).count();
-    await sidebarItem.dragTo(target);
+    // Section's draggable runs with `invertSwap: true` + `invertedSwapThreshold:
+    // 0.65`, so swap zones are the outer ~17.5% of each existing block.
+    // Aiming at the COLUMN's bottom 10% can land in column whitespace below
+    // the last item (column has `min-h-[60px]`, items may not fill it), which
+    // misses every swap zone. Aim at the last item's bottom 10% instead; for
+    // an empty column, aim at the column center where `emptyInsertThreshold`
+    // applies.
+    const existingBlocks = this.getSectionColumnBlocks(sectionIndex, colIndex);
+    const existingCount = await existingBlocks.count();
+    if (existingCount > 0) {
+      const lastBlock = existingBlocks.last();
+      const lastBox = await lastBlock.boundingBox();
+      if (!lastBox)
+        throw new Error(
+          `Section ${sectionIndex} col ${colIndex} last block bounding box unavailable`,
+        );
+      await sidebarItem.dragTo(lastBlock, {
+        targetPosition: {
+          x: lastBox.width / 2,
+          y: lastBox.height - Math.max(4, lastBox.height * 0.1),
+        },
+      });
+    } else {
+      const targetBox = await target.boundingBox();
+      if (!targetBox)
+        throw new Error(
+          `Section ${sectionIndex} col ${colIndex} bounding box unavailable`,
+        );
+      await sidebarItem.dragTo(target, {
+        targetPosition: {
+          x: targetBox.width / 2,
+          y: targetBox.height / 2,
+        },
+      });
+    }
     await expect
       .poll(() => section.locator(SELECTORS.block).count(), { timeout: 5000 })
       .toBe(countBefore + 1);
@@ -355,17 +389,15 @@ export class EditorPage {
     const startX = sourceBox.x + sourceBox.width / 2;
     const startY = sourceBox.y + sourceBox.height / 2;
     const endX = targetBox.x + targetBox.width / 2;
-    // Section's draggable uses default Sortable `swapThreshold: 1.0` (no
-    // invert-swap). A swap only fires once the pointer crosses the target's
-    // center toward the source — but ending too close to the target's edge
-    // overshoots into the neighbor's swap zone and causes the dropped item
-    // to land one slot past the intended position. 60% / 40% sits safely
-    // past center without crossing the boundary.
+    // Section's and canvas's draggables both run with `invertSwap: true` +
+    // `invertedSwapThreshold: 0.65`, so the swap zone is the outer ~17.5%
+    // of each edge (inner 65% is a dead zone). Aiming at 10% / 90% lands
+    // squarely in the active zone and lets Sortable fire the swap reliably.
     const endY =
       targetEdge === "top"
-        ? targetBox.y + targetBox.height * 0.4
+        ? targetBox.y + targetBox.height * 0.1
         : targetEdge === "bottom"
-          ? targetBox.y + targetBox.height * 0.6
+          ? targetBox.y + targetBox.height * 0.9
           : targetBox.y + targetBox.height / 2;
 
     // Sortable.js gates drag-start on a small initial movement (>1px) and
@@ -409,14 +441,38 @@ export class EditorPage {
     await fromBlock.scrollIntoViewIfNeeded();
     await toBlock.scrollIntoViewIfNeeded();
     const fromBox = await fromBlock.boundingBox();
-    const toBox = await toBlock.boundingBox();
-    if (!fromBox || !toBox) throw new Error("Section reorder bounds unavailable");
+    if (!fromBox) throw new Error("Section reorder source bounds unavailable");
 
-    await this.pointerDrive(
-      fromBox,
-      toBox,
-      toChildIndex > fromChildIndex ? "bottom" : "top",
-    );
+    // Sortable replaces the dragged element with a zero-height ghost
+    // (`.tpl-ghost { height: 0 }`), so once the drag starts, the column
+    // collapses and the target block shifts up by the source's height.
+    // Pre-drag `toBox` coordinates would aim past the target's new position
+    // — drive the mouse to drag-start first, re-query `toBox`, then
+    // interpolate to the up-to-date target location.
+    const targetEdge = toChildIndex > fromChildIndex ? "bottom" : "top";
+    const startX = fromBox.x + fromBox.width / 2;
+    const startY = fromBox.y + fromBox.height / 2;
+    await this.page.mouse.move(startX, startY);
+    await this.page.mouse.down();
+    // Tiny nudge so Sortable's drag-start threshold fires and the ghost
+    // is inserted into the DOM, collapsing the column.
+    await this.page.mouse.move(startX + 4, startY + 4);
+
+    const toBox = await toBlock.boundingBox();
+    if (!toBox) {
+      await this.page.mouse.up();
+      throw new Error("Section reorder target bounds unavailable after drag start");
+    }
+    const endX = toBox.x + toBox.width / 2;
+    const endY =
+      targetEdge === "top"
+        ? toBox.y + toBox.height * 0.1
+        : toBox.y + toBox.height * 0.9;
+
+    await this.page.mouse.move(endX, endY, { steps: 30 });
+    await this.page.mouse.move(endX, endY);
+    await this.page.mouse.move(endX, endY);
+    await this.page.mouse.up();
 
     await expect
       .poll(
@@ -649,14 +705,37 @@ export class EditorPage {
     // Arm a transitionend listener before the click so we catch the exact
     // settled frame. Canvas.vue animates `width` with a 300ms spring-bounce
     // curve — polling for "width changed" fires mid-flight and returns an
-    // overshoot value. Fallback timeout covers the same-viewport no-op case
-    // where no transition runs.
+    // overshoot value. The wrapper lives inside the editor's shadow root
+    // when shadowDom is enabled, so look through every container's shadow
+    // root first; fall back to a document query for light-DOM mounts.
+    // Fallback timeout covers the same-viewport no-op case where no
+    // transition runs (and the listener never fires).
     const settled = this.page.evaluate((testId) => {
       return new Promise<void>((resolve) => {
-        const el = document.querySelector(`[data-testid="${testId}"]`);
+        let el: Element | null = document.querySelector(
+          `[data-testid="${testId}"]`,
+        );
+        if (!el) {
+          // Walk every host element with an open shadow root looking for
+          // the wrapper. Avoids hard-coding the editor container's
+          // testid in this helper.
+          const hosts = Array.from(document.querySelectorAll("*")).filter(
+            (n): n is HTMLElement =>
+              n instanceof HTMLElement && !!n.shadowRoot,
+          );
+          for (const host of hosts) {
+            const inside = host.shadowRoot!.querySelector(
+              `[data-testid="${testId}"]`,
+            );
+            if (inside) {
+              el = inside;
+              break;
+            }
+          }
+        }
         if (!el) return resolve();
         const done = () => {
-          el.removeEventListener("transitionend", handler);
+          el!.removeEventListener("transitionend", handler);
           resolve();
         };
         const handler = (e: Event) => {

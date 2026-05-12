@@ -60,6 +60,8 @@ import {
   CAPABILITIES_KEY,
   KEYBOARD_REORDER_KEY,
   ACCESSIBILITY_LINT_KEY,
+  EDITOR_ROOT_KEY,
+  POPOVER_ROOT_KEY,
 } from "../keys";
 import {
   useAccessibilityLint,
@@ -198,6 +200,15 @@ export interface UseEditorCoreOptions {
 
   /** Cloud capabilities exposed to OSS components. Empty in OSS mode. */
   capabilities?: EditorCapabilities;
+
+  /**
+   * Effective DOM root — `Document` in light-DOM mode, `ShadowRoot` when
+   * mounted with `shadowDom: true`. Provided via `EDITOR_ROOT_KEY` so
+   * shadow-DOM-aware composables (focus trap, popover mount targets, etc.)
+   * can read it without reaching for the global `document`. Defaults to
+   * `document` if omitted — preserves current light-DOM behavior.
+   */
+  editorRoot?: Document | ShadowRoot;
 }
 
 export interface UseEditorCoreReturn {
@@ -213,6 +224,13 @@ export interface UseEditorCoreReturn {
   registry: UseBlockRegistryReturn;
   keyboardReorder: UseKeyboardReorderReturn;
   accessibilityLint: UseAccessibilityLintReturn | null;
+  /**
+   * Ref bound to the `<div class="tpl-popover-root" />` that the editor's
+   * top-level template must render. Provided via `POPOVER_ROOT_KEY` so
+   * popovers/toolbars/modals teleport inside the editor's effective DOM
+   * root (shadow-aware) instead of escaping to `document.body`.
+   */
+  popoverRoot: Ref<HTMLElement | null>;
   registerCustomBlocks: (definitions: CustomBlockDefinition[]) => void;
   destroy: () => void;
 }
@@ -313,9 +331,25 @@ export function useEditorCore(
     });
   }
 
+  // Attach the global keydown listener at the `document` level even in
+  // shadow mode. Non-focusable elements (most blocks are bare `<div>`)
+  // don't capture focus on click, so after a user clicks a block their
+  // active element stays on `document.body` — a subsequent keystroke
+  // never reaches the shadow root, only `document`. Listening at
+  // `document` keeps Escape / Cmd+Z / Delete shortcuts working in both
+  // modes; multi-instance scoping (a future concern) will need to
+  // disambiguate per-editor at the handler level rather than via
+  // listener target.
   useEventListener(document, "keydown", handleKeyboard);
 
-  // --- Provides (18 shared keys) ---
+  // --- Popover mount ---
+  // Ref bound by the editor template to `<div class="tpl-popover-root" />`.
+  // Null until the template mounts; consumers guard with `v-if="popoverRoot"`.
+  const popoverRoot = ref<HTMLElement | null>(null);
+
+  // --- Provides (19 shared keys) ---
+  provide(EDITOR_ROOT_KEY, options.editorRoot ?? document);
+  provide(POPOVER_ROOT_KEY, popoverRoot);
   provide(TRANSLATIONS_KEY, translations);
   provide(EDITOR_KEY, editor);
   provide(HISTORY_KEY, history);
@@ -383,6 +417,7 @@ export function useEditorCore(
     registry,
     keyboardReorder,
     accessibilityLint,
+    popoverRoot,
     registerCustomBlocks,
     destroy,
   };

@@ -23,6 +23,10 @@ npm install @templatical/editor @templatical/media-library pusher-js
 
 `@templatical/media-library` provides the built-in media browser and `pusher-js` enables real-time collaboration. Both are optional peer dependencies — only needed when using `initCloud()`.
 
+::: info Shadow DOM
+`initCloud()` inherits all shadow-DOM behavior from the editor — mounted inside a Shadow DOM by default for host-CSS isolation. The media browser, AI panels, comments, and snapshot UI all teleport into the editor's shadow-aware popover root, so no special handling is needed. Pass `shadowDom: false` to opt out. See the [Shadow DOM guide](/guide/shadow-dom).
+:::
+
 ## Authentication Endpoint
 
 Cloud features require an authentication endpoint on your server that issues access tokens. The SDK calls this endpoint automatically to obtain and refresh tokens.

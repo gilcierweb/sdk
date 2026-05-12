@@ -71,6 +71,8 @@ import {
   Database,
   Blocks,
   MonitorSmartphone,
+  Layers,
+  Square,
 } from "@lucide/vue";
 import {
   usePlaygroundI18n,
@@ -711,13 +713,67 @@ function cancelMediaPicker(): void {
 
 const initError = ref("");
 
+// Shadow DOM mount mode. Resolution order on first load:
+//   1. URL param `?shadowDom=0/1/false/true` — strongest (e2e fixture relies
+//      on this for deterministic project pinning).
+//   2. localStorage `tpl-playground-shadow-mode` — persists user's toggle.
+//   3. SDK default — `'shadow'`.
+// Once mounted, the header toggle button mutates this ref + localStorage and
+// re-inits the editor with the new mode.
+const SHADOW_STORAGE_KEY = "tpl-playground-shadow-mode";
+
+function readShadowDomFlag(): boolean | undefined {
+  if (typeof window === "undefined") return undefined;
+  const v = new URLSearchParams(window.location.search).get("shadowDom");
+  if (v === "1" || v === "true") return true;
+  if (v === "0" || v === "false") return false;
+  return undefined;
+}
+
+function readStoredShadowMode(): "shadow" | "light" | null {
+  if (typeof window === "undefined") return null;
+  const v = window.localStorage.getItem(SHADOW_STORAGE_KEY);
+  return v === "shadow" || v === "light" ? v : null;
+}
+
+function resolveInitialShadowMode(): "shadow" | "light" {
+  const urlFlag = readShadowDomFlag();
+  if (urlFlag !== undefined) return urlFlag ? "shadow" : "light";
+  return readStoredShadowMode() ?? "shadow";
+}
+
+const shadowDomMode = ref<"shadow" | "light">(resolveInitialShadowMode());
+
+async function cycleShadowDom(): Promise<void> {
+  const newMode = shadowDomMode.value === "shadow" ? "light" : "shadow";
+  if (typeof window !== "undefined") {
+    window.localStorage.setItem(SHADOW_STORAGE_KEY, newMode);
+  }
+  if (editor.value) {
+    // Once `attachShadow()` runs on a host element, the shadow root is
+    // permanent — even after Vue unmount, the (now empty) shadow tree
+    // suppresses light-DOM children. So we must tear down the current
+    // editor AND force Vue to recreate the container element via a `:key`
+    // bump, then re-init on the fresh node.
+    editor.value.unmount();
+    editor.value = null;
+    shadowDomMode.value = newMode;
+    await nextTick();
+    await initEditor();
+  } else {
+    shadowDomMode.value = newMode;
+  }
+}
+
 async function initEditor(): Promise<void> {
   if (!editorContainer.value) return;
 
   initError.value = "";
+  const shadowDom = shadowDomMode.value === "shadow";
   try {
     editor.value = await init({
       container: editorContainer.value,
+      shadowDom,
       ...currentSerializableConfig,
       mergeTags: {
         ...currentSerializableConfig.mergeTags,
@@ -1141,6 +1197,23 @@ onUnmounted(() => {
         class="relative flex flex-col items-center justify-center-safe min-h-screen bg-white py-12 dark:bg-gray-900"
       >
         <div class="absolute top-4 right-4 flex items-center gap-1.5">
+          <button
+            class="pg-toolbar-btn"
+            :title="t.a11y.toggleShadowDom"
+            :aria-label="t.a11y.toggleShadowDom"
+            data-testid="toolbar-shadow-toggle"
+            @click="cycleShadowDom"
+          >
+            <Layers
+              v-if="shadowDomMode === 'shadow'"
+              :size="14"
+              aria-hidden="true"
+            />
+            <Square v-else :size="14" aria-hidden="true" />
+            <span class="pg-toolbar-label">{{
+              t.shadowMode[shadowDomMode]
+            }}</span>
+          </button>
           <button
             class="pg-theme-btn"
             :title="t.theme[uiTheme]"
@@ -1781,6 +1854,23 @@ onUnmounted(() => {
               />
             </a>
             <button
+              data-testid="toolbar-shadow-toggle"
+              class="pg-toolbar-btn"
+              :title="t.a11y.toggleShadowDom"
+              :aria-label="t.a11y.toggleShadowDom"
+              @click="cycleShadowDom"
+            >
+              <Layers
+                v-if="shadowDomMode === 'shadow'"
+                :size="14"
+                aria-hidden="true"
+              />
+              <Square v-else :size="14" aria-hidden="true" />
+              <span class="pg-toolbar-label">{{
+                t.shadowMode[shadowDomMode]
+              }}</span>
+            </button>
+            <button
               data-testid="toolbar-theme"
               class="pg-theme-btn"
               :title="t.theme[uiTheme]"
@@ -1826,6 +1916,7 @@ onUnmounted(() => {
           </div>
           <div
             v-else
+            :key="shadowDomMode"
             ref="editorContainer"
             data-testid="editor-container"
             data-onboarding="canvas"
