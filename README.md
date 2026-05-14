@@ -93,7 +93,7 @@ const mjml = await editor.toMjml();
 
 | Package | Description | License |
 |---------|-------------|---------|
-| [`@templatical/editor`](https://www.npmjs.com/package/@templatical/editor) | Vue 3 visual drag-and-drop editor | [FSL-1.1-MIT](./LICENSE) |
+| [`@templatical/editor`](https://www.npmjs.com/package/@templatical/editor) | Visual drag-and-drop editor | [FSL-1.1-MIT](./LICENSE) |
 | [`@templatical/core`](https://www.npmjs.com/package/@templatical/core) | Framework-agnostic editor logic, state, history | [FSL-1.1-MIT](./LICENSE) |
 | [`@templatical/media-library`](https://www.npmjs.com/package/@templatical/media-library) | Media library — composable, components, standalone SDK | [FSL-1.1-MIT](./LICENSE) |
 | [`@templatical/types`](https://www.npmjs.com/package/@templatical/types) | Shared TypeScript types and block factories | [MIT](./LICENSE-MIT) |
@@ -128,14 +128,6 @@ The only restriction: don't repackage Templatical itself as a directly competing
 
 Full docs: **[docs.templatical.com](https://docs.templatical.com)** (English + Deutsch).
 
-## Roadmap
-
-- More built-in block types (accordion, code, AMP-for-email)
-- Plain-text email auto-generation
-- More locales (community contributions welcome)
-
-Track progress on [GitHub Issues](https://github.com/templatical/sdk/issues) or open a [Discussion](https://github.com/templatical/sdk/discussions) to propose something.
-
 ## Contributing
 
 Contributions, bug reports, and feature requests are welcome.
@@ -148,7 +140,7 @@ pnpm run build
 pnpm run test
 ```
 
-See [CONTRIBUTING.md](./CONTRIBUTING.md) for the full guide and [CLAUDE.md](./CLAUDE.md) for architecture details.
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for the full guide.
 
 ## Sponsors
 
