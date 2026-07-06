@@ -126,6 +126,7 @@ export default {
     ratio12: "1:2 Ratio",
     ratio21: "2:1 Ratio",
     borderRadius: "Border Radius",
+    wrapperEnable: "Add wrapper",
   },
 
   // Text editor link dialog

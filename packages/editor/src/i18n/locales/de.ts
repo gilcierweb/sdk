@@ -131,6 +131,7 @@ const de: typeof en = {
     ratio12: "1:2 Verhältnis",
     ratio21: "2:1 Verhältnis",
     borderRadius: "Eckenradius",
+    wrapperEnable: "Wrapper hinzufügen",
   },
 
   // Text editor link dialog
