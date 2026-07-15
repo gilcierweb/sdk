@@ -4,6 +4,7 @@ import type {
   ViewportSize,
 } from "@templatical/types";
 import { computed } from "vue";
+import MergeTagPreviewText from "../MergeTagPreviewText.vue";
 
 const props = defineProps<{
   block: ButtonBlockType;
@@ -45,7 +46,7 @@ const buttonStyle = computed(() => {
       class="tpl:cursor-default"
       @click.prevent
     >
-      {{ block.text }}
+      <MergeTagPreviewText :text="block.text" />
     </a>
   </div>
 </template>

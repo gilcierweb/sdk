@@ -6,6 +6,7 @@ import type {
 } from "@templatical/types";
 import { Navigation } from "@lucide/vue";
 import { computed } from "vue";
+import MergeTagPreviewText from "../MergeTagPreviewText.vue";
 
 const props = defineProps<{
   block: MenuBlockType;
@@ -50,7 +51,7 @@ function getLinkColor(itemColor?: string): string {
           }"
           @click.prevent
         >
-          {{ item.text || "..." }}
+          <MergeTagPreviewText :text="item.text || '...'" />
         </a>
         <span
           v-if="index < block.items.length - 1"

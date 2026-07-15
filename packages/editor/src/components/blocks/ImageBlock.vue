@@ -6,6 +6,7 @@ import type {
   ViewportSize,
 } from "@templatical/types";
 import { containsMergeTag } from "@templatical/types";
+import MergeTagPreviewText from "../MergeTagPreviewText.vue";
 import { Image, Upload, LoaderCircle } from "@lucide/vue";
 import { computed, inject, ref } from "vue";
 import { ON_REQUEST_MEDIA_KEY } from "../../keys";
@@ -156,7 +157,7 @@ const hasMergeTagSrc = computed(() =>
         class="tpl:max-w-full tpl:truncate tpl:px-3 tpl:text-xs tpl:font-medium tpl:text-[var(--tpl-primary)]"
         style="opacity: 0.7"
       >
-        {{ block.src }}
+        <MergeTagPreviewText :text="block.src" />
       </span>
     </div>
     <!-- Normal image rendering -->

@@ -7,6 +7,7 @@ import type {
 } from "@templatical/types";
 import { getVideoThumbnail } from "../../utils/videoThumbnail";
 import { containsMergeTag } from "@templatical/types";
+import MergeTagPreviewText from "../MergeTagPreviewText.vue";
 import { Video } from "@lucide/vue";
 import { computed } from "vue";
 
@@ -44,10 +45,11 @@ const thumbnailStyle = computed(() => {
   };
 });
 
-const mergeTagLabel = computed(() => {
-  if (containsMergeTag(props.block.url, syntax)) return props.block.url;
-  return props.block.thumbnailUrl;
-});
+const mergeTagValue = computed(() =>
+  containsMergeTag(props.block.url, syntax)
+    ? props.block.url
+    : props.block.thumbnailUrl,
+);
 </script>
 
 <template>
@@ -84,7 +86,7 @@ const mergeTagLabel = computed(() => {
         class="tpl:max-w-full tpl:truncate tpl:px-3 tpl:text-xs tpl:font-medium tpl:text-[var(--tpl-primary)]"
         style="opacity: 0.7"
       >
-        {{ mergeTagLabel }}
+        <MergeTagPreviewText :text="mergeTagValue" />
       </span>
     </div>
     <!-- Normal video thumbnail -->
