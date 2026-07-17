@@ -52,6 +52,7 @@ describe("createDefaultTemplateContent", () => {
       width: 600,
       backgroundColor: "#ffffff",
       textColor: "#1a1a1a",
+      linkUnderline: true,
       fontFamily: "Arial",
       locale: "en",
     });
