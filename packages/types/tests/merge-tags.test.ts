@@ -403,6 +403,46 @@ describe('getSyntaxTriggerChar', () => {
         expect(getSyntaxTriggerChar(empty)).toBe(null);
     });
 
+    it('returns the opener of a custom syntax that declares one', () => {
+        const custom = { value: /\{[^{}\s]+\}/g, logic: /(?!)/g, opener: '{', closer: '}' };
+        expect(getSyntaxTriggerChar(custom)).toBe('{');
+    });
+
+    it('returns an opener that is also the closer', () => {
+        const custom = { value: /%[A-Z_]+%/g, logic: /(?!)/g, opener: '%', closer: '%' };
+        expect(getSyntaxTriggerChar(custom)).toBe('%');
+    });
+
+    it('keeps a space inside the opener', () => {
+        const custom = { value: /\{\{ \w+ \}\}/g, logic: /(?!)/g, opener: '{{ ', closer: ' }}' };
+        expect(getSyntaxTriggerChar(custom)).toBe('{{ ');
+    });
+
+    it('prefers an explicit opener over a matching preset', () => {
+        const custom = { ...SYNTAX_PRESETS.liquid, opener: '{{ ' };
+        expect(getSyntaxTriggerChar(custom)).toBe('{{ ');
+    });
+
+    it('ignores an empty opener', () => {
+        const custom = { value: /<<.+?>>/g, logic: /<%.+?%>/g, opener: '' };
+        expect(getSyntaxTriggerChar(custom)).toBe(null);
+    });
+
+    it('ignores a whitespace-only opener on a custom syntax', () => {
+        const custom = { value: /<<.+?>>/g, logic: /<%.+?%>/g, opener: '  ' };
+        expect(getSyntaxTriggerChar(custom)).toBe(null);
+    });
+
+    it('falls back to the preset opener when the declared one is whitespace', () => {
+        const custom = { ...SYNTAX_PRESETS.liquid, opener: ' ' };
+        expect(getSyntaxTriggerChar(custom)).toBe('{{');
+    });
+
+    it('does not read the old trigger field', () => {
+        const custom = { value: /<<.+?>>/g, logic: /<%.+?%>/g, trigger: '<<' };
+        expect(getSyntaxTriggerChar(custom)).toBe(null);
+    });
+
     it('matches by source even when regex flags differ', () => {
 
         const cloned = {
@@ -437,6 +477,36 @@ describe('getSyntaxClosingChar', () => {
 
     it('returns null for custom syntax', () => {
         const custom = { value: /<<.+?>>/g, logic: /<%.+?%>/g };
+        expect(getSyntaxClosingChar(custom)).toBe(null);
+    });
+
+    it('returns the closer of a custom syntax that declares one', () => {
+        const custom = { value: /<<.+?>>/g, logic: /<%.+?%>/g, opener: '<<', closer: '>>' };
+        expect(getSyntaxClosingChar(custom)).toBe('>>');
+    });
+
+    it('returns a closer that is also the opener', () => {
+        const custom = { value: /%[A-Z_]+%/g, logic: /(?!)/g, opener: '%', closer: '%' };
+        expect(getSyntaxClosingChar(custom)).toBe('%');
+    });
+
+    it('returns null for a custom syntax with an opener but no closer', () => {
+        const custom = { value: /<<.+?>>/g, logic: /<%.+?%>/g, opener: '<<' };
+        expect(getSyntaxClosingChar(custom)).toBe(null);
+    });
+
+    it('ignores a whitespace-only closer', () => {
+        const custom = { value: /<<.+?>>/g, logic: /<%.+?%>/g, opener: '<<', closer: ' ' };
+        expect(getSyntaxClosingChar(custom)).toBe(null);
+    });
+
+    it('falls back to the preset closer when the declared one is whitespace', () => {
+        const custom = { ...SYNTAX_PRESETS.liquid, closer: '  ' };
+        expect(getSyntaxClosingChar(custom)).toBe('}}');
+    });
+
+    it('does not read the old closing field', () => {
+        const custom = { value: /<<.+?>>/g, logic: /<%.+?%>/g, opener: '<<', closing: '>>' };
         expect(getSyntaxClosingChar(custom)).toBe(null);
     });
 
