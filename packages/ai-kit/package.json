@@ -7,7 +7,10 @@
     "@templatical/types": "workspace:*"
   },
   "devDependencies": {
+    "@anthropic-ai/sdk": "^1.1.0",
     "@types/node": "^25.9.9",
+    "ai": "^7.0.148",
+    "openai": "^7.42.0",
     "typescript": "^6.0.3",
     "vitest": "^5.0.5"
   },
@@ -27,6 +30,18 @@
     "./testing": {
       "types": "./dist/testing/index.d.ts",
       "import": "./dist/testing/index.js"
+    },
+    "./adapters/anthropic": {
+      "types": "./dist/adapters/anthropic.d.ts",
+      "import": "./dist/adapters/anthropic.js"
+    },
+    "./adapters/openai": {
+      "types": "./dist/adapters/openai.d.ts",
+      "import": "./dist/adapters/openai.js"
+    },
+    "./adapters/vercel": {
+      "types": "./dist/adapters/vercel.d.ts",
+      "import": "./dist/adapters/vercel.js"
     },
     "./prompts/*": "./prompts/*",
     "./schema/*": "./schema/*",
@@ -51,6 +66,22 @@
   ],
   "license": "MIT",
   "module": "./dist/index.js",
+  "peerDependencies": {
+    "@anthropic-ai/sdk": "^1",
+    "ai": "^7",
+    "openai": "^7"
+  },
+  "peerDependenciesMeta": {
+    "@anthropic-ai/sdk": {
+      "optional": true
+    },
+    "ai": {
+      "optional": true
+    },
+    "openai": {
+      "optional": true
+    }
+  },
   "publishConfig": {
     "access": "public"
   },
