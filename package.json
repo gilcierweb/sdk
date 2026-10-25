@@ -46,7 +46,7 @@
   "packageManager": "pnpm@12.15.0+sha512.b3951d6d6ff4a9f13dc7cf56cd28d2b8eb37dbcc9c68e52e1e1191873ea9f82a017287ab50baadc5ccc494f036c67c0e47eb13608c2fa36f47711b61ea128e61",
   "private": true,
   "scripts": {
-    "build": "pnpm --filter @templatical/types run build && pnpm --filter @templatical/core --filter @templatical/renderer --filter @templatical/import-beefree --filter @templatical/import-unlayer --filter @templatical/import-html --filter @templatical/import-mjml --filter @templatical/import-topol --filter @templatical/import-stripo --filter @templatical/import-chamaileon --filter @templatical/import-easy-email-pro run build && pnpm --filter @templatical/media-library run build:all && pnpm --filter @templatical/quality run build && pnpm --filter @templatical/template-tools run build && pnpm --filter @templatical/editor run build:all",
+    "build": "pnpm --filter @templatical/types run build && pnpm --filter @templatical/core --filter @templatical/ai-kit --filter @templatical/renderer --filter @templatical/import-beefree --filter @templatical/import-unlayer --filter @templatical/import-html --filter @templatical/import-mjml --filter @templatical/import-topol --filter @templatical/import-stripo --filter @templatical/import-chamaileon --filter @templatical/import-easy-email-pro run build && pnpm --filter @templatical/media-library run build:all && pnpm --filter @templatical/quality run build && pnpm --filter @templatical/template-tools run build && pnpm --filter @templatical/editor run build:all",
     "build:all-sdk": "pnpm run build:email-editor && pnpm run build:media-library",
     "build:email-editor": "pnpm --filter @templatical/editor run build:cdn",
     "build:media-library": "pnpm --filter @templatical/media-library run build:cdn",
